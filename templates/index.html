@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical AI Chatbot</title>
+    <!-- We'll use the Inter font for consistency with other UIs -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Load Tailwind CSS for any additional utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        /* General styling for a clean, professional look */
+        :root {
+            --primary-color: #007BFF;
+            --secondary-color: #28a745;
+            --background-gradient: linear-gradient(135deg, #e9f5ff, #f0faff);
+            --message-bg-user: #007BFF;
+            --message-bg-bot: #f1f7fe;
+            --text-color-dark: #333;
+            --text-color-light: #fff;
+            --border-color: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--background-gradient);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--text-color-dark);
+            overflow: hidden; /* Prevent body scroll */
+        }
+
+        .chatbot-container {
+            width: 100%;
+            max-width: 500px;
+            height: 90vh;
+            max-height: 750px;
+            background: #fff;
+            border-radius: 25px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.5s ease-in-out;
+            margin: 20px;
+        }
+
+        .chatbot-header {
+            background: var(--primary-color);
+            color: var(--text-color-light);
+            padding: 25px;
+            text-align: center;
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chatbot-title {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chatbot-title i {
+            margin-right: 12px;
+            font-size: 1.8rem;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: var(--message-bg-bot);
+        }
+
+        /* Message animation and styling */
+        .message {
+            padding: 15px 20px;
+            border-radius: 20px;
+            max-width: 85%;
+            word-wrap: break-word;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transform: scale(0.9);
+            opacity: 0;
+            animation: fadeInScale 0.4s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        @keyframes fadeInScale {
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--primary-color);
+            color: var(--text-color-light);
+            border-bottom-right-radius: 5px;
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            background-color: var(--message-bg-bot);
+            color: var(--text-color-dark);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 5px;
+        }
+
+        .chat-input-area {
+            display: flex;
+            padding: 18px;
+            background: #fff;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .chat-input {
+            flex-grow: 1;
+            padding: 12px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 25px;
+            outline: none;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.2);
+        }
+
+        .send-btn {
+            background: var(--primary-color);
+            color: var(--text-color-light);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            margin-left: 15px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(0, 123, 255, 0.4);
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .loading-indicator {
+            display: none;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 10px 20px;
+        }
+        
+        .loading-indicator.active {
+            display: flex;
+        }
+        
+        .dot {
+            width: 10px;
+            height: 10px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            margin: 0 4px;
+            opacity: 0.6;
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+        
+        .dot:nth-child(1) { animation-delay: -0.4s; }
+        .dot:nth-child(2) { animation-delay: -0.2s; }
+        .dot:nth-child(3) { animation-delay: 0s; }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .chatbot-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+                margin: 0;
+            }
+            .chatbot-header {
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chatbot-container">
+        <header class="chatbot-header flex items-center justify-between p-6">
+            <h1 class="chatbot-title">
+                <i class="fas fa-stethoscope"></i> MedBot
+            </h1>
+            <div class="language-selector">
+                <select id="language-select" class="bg-white text-gray-800 rounded-lg py-2 px-4 shadow-sm">
+                    <option value="English">English</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="Marathi">Marathi</option>
+                    <option value="Urdu">Urdu</option>
+
+
+                </select>
+            </div>
+        </header>
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot-message">
+                Hello! I am MedBot, your AI health assistant. How can I help you today?
+            </div>
+        </div>
+        <div class="loading-indicator" id="loading-indicator">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="user-input" placeholder="Describe your symptoms or ask a question..." class="chat-input">
+            <button id="send-btn" class="send-btn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const languageSelect = document.getElementById('language-select');
+            const apiEndpoint = '/medical-chat'; // Replace with your actual backend endpoint
+
+            /**
+             * Adds a new message to the chat interface with a slight animation.
+             * @param {string} message - The text of the message.
+             * @param {boolean} isUser - True if the message is from the user, false otherwise.
+             */
+            function addMessage(message, isUser) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message');
+                messageElement.classList.add(isUser ? 'user-message' : 'bot-message');
+
+                // This handles Markdown-style bolding for the bot's messages
+                let formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+                // Handle Markdown bullet points
+                const lines = formattedMessage.split('\n');
+                const listItems = [];
+                let inList = false;
+
+                lines.forEach(line => {
+                    if (line.trim().startsWith('* ') || line.trim().startsWith('- ')) {
+                        // Start a new list if we aren't already in one
+                        if (!inList) {
+                            listItems.push('<ul>');
+                            inList = true;
+                        }
+                        const listItemText = line.trim().substring(2);
+                        listItems.push(`<li>${listItemText}</li>`);
+                    } else {
+                        // End the list if we were in one and the current line is not a list item
+                        if (inList) {
+                            listItems.push('</ul>');
+                            inList = false;
+                        }
+                        // Add a paragraph break for non-list content
+                        listItems.push(`<p>${line}</p>`);
+                    }
+                });
+
+                // Close any open list at the end of the message
+                if (inList) {
+                    listItems.push('</ul>');
+                }
+
+                messageElement.innerHTML = listItems.join('');
+
+                chatMessages.appendChild(messageElement);
+
+                // Force a reflow to restart the animation
+                void messageElement.offsetWidth;
+                messageElement.style.animationPlayState = 'running';
+
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            /**
+             * Toggles the visibility of the animated loading indicator.
+             * @param {boolean} show - True to show the indicator, false to hide it.
+             */
+            function showLoading(show) {
+                if (show) {
+                    loadingIndicator.classList.add('active');
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } else {
+                    loadingIndicator.classList.remove('active');
+                }
+            }
+
+            /**
+             * Sends the user's message to the backend and handles the response.
+             */
+            async function sendMessage() {
+                const message = userInput.value.trim();
+                if (message === '') return;
+
+                addMessage(message, true);
+                userInput.value = '';
+                showLoading(true);
+
+                const selectedLanguage = languageSelect.value;
+                const fullPrompt = `You are a helpful and professional medical AI assistant. You are not a replacement for a doctor. Always advise the user to consult a healthcare professional for diagnosis and treatment. Respond in ${selectedLanguage} to the following medical query: ${message}`;
+
+                try {
+                    const response = await fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: fullPrompt }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const botResponse = data.response;
+                    addMessage(botResponse, false);
+
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                    addMessage("Sorry, I'm having trouble connecting right now. Please try again later.", false);
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            // Event listeners
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
